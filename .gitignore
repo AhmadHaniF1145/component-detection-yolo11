@@ -1,0 +1,13 @@
+# cache
+__pycache__/
+*.pyc
+.DS_Store
+# video besar JANGAN diupload (GitHub limit 100MB) -> kecuali yg terkompres di videos/
+*.mp4
+!videos/*.mp4
+*.avi
+*.engine
+# backup label lokal
+labeling/labels_backup_tighten/
+labeling/_seed_friend_backup/
+labeling/_labels_user_backup/

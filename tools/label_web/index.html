@@ -1,0 +1,177 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Label Validator — YOLO</title>
+<style>
+  :root{--bg:#0f172a;--pan:#111c33;--ln:#243049;--mut:#94a3b8;--cy:#06b6d4;--gr:#10b981}
+  *{box-sizing:border-box;font-family:Segoe UI,system-ui,Arial,sans-serif}
+  body{margin:0;height:100vh;display:flex;background:var(--bg);color:#e2e8f0;overflow:hidden}
+  #side{width:230px;flex:none;border-right:1px solid var(--ln);display:flex;flex-direction:column;background:var(--pan)}
+  #side h1{font-size:14px;margin:10px 12px 4px}
+  #prog{margin:0 12px 8px;font-size:12px;color:var(--mut)}
+  #bar{height:6px;background:#1e293b;border-radius:3px;margin:4px 12px 8px;overflow:hidden}
+  #bar>i{display:block;height:100%;width:0;background:var(--gr)}
+  #filter{margin:0 12px 8px;font-size:12px}
+  #list{flex:1;overflow:auto;font-size:12px}
+  .it{padding:5px 12px;cursor:pointer;display:flex;justify-content:space-between;border-left:3px solid transparent}
+  .it:hover{background:#162033}.it.sel{background:#0b2536;border-left-color:var(--cy)}
+  .it .v{color:var(--gr)}
+  #main{flex:1;display:flex;flex-direction:column;min-width:0}
+  #bar2{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
+  .cls{padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;border:2px solid transparent;color:#0b1220}
+  .cls.act{outline:2px solid #fff;border-color:#fff}
+  button{background:#1e293b;color:#e2e8f0;border:1px solid var(--ln);padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px}
+  button:hover{background:#27374e}
+  button.pri{background:var(--cy);border-color:var(--cy);font-weight:700;color:#04222a}
+  #cv{flex:1;display:block;cursor:crosshair;background:#0a1222}
+  #hint{font-size:11px;color:var(--mut);padding:4px 12px;border-top:1px solid var(--ln)}
+  #toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:#0b2536;border:1px solid var(--cy);
+         padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:.2s}
+</style>
+<div id="side">
+  <h1>Label Validator</h1>
+  <div id="prog">0 / 0 tervalidasi</div>
+  <div id="bar"><i></i></div>
+  <label id="filter"><input type="checkbox" id="fOnly"> hanya yang belum</label>
+  <div id="list"></div>
+</div>
+<div id="main">
+  <div id="bar2">
+    <span id="pal"></span>
+    <span style="flex:1"></span>
+    <button onclick="prev()">◀ Prev (A)</button>
+    <button onclick="next()">Next (D) ▶</button>
+    <button class="pri" onclick="saveValidate()">✔ Simpan & Validasi (S)</button>
+    <button onclick="copyPrev()" title="C">⬅ Salin sebelumnya (C)</button>
+    <button onclick="propagate()" title="G">⇊ Salin ke grup (G)</button>
+    <button onclick="delSel()" title="Del">🗑 Hapus kotak</button>
+  </div>
+  <canvas id="cv"></canvas>
+  <div id="hint">Tarik area kosong = kotak baru (kelas aktif). Klik kotak = pilih, tarik tengah = geser, tarik sudut = resize.
+    1–9 ganti kelas. Del = hapus. <b>G</b> = salin label ini ke semua frame se-video (mis. v1_*). <b>C</b> = ambil kotak gambar sebelumnya. Edit auto-tersimpan saat pindah gambar.</div>
+</div>
+<div id="toast"></div>
+<script>
+const COL=["#ef4444","#f59e0b","#22d3ee","#22c55e","#a78bfa","#ec4899","#14b8a6","#eab308","#60a5fa","#fb7185"];
+let CLASSES=[], IMAGES=[], VALID=new Set(), idx=0, curClass=0;
+let boxes=[], img=new Image(), natW=0,natH=0, dirty=false, sel=-1;
+let view={s:1,ox:0,oy:0,dw:0,dh:0};
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.opacity=1;clearTimeout(e._t);e._t=setTimeout(()=>e.style.opacity=0,1100);}
+
+async function boot(){
+  const c=await (await fetch('/api/config')).json();
+  CLASSES=c.classes; IMAGES=c.images; VALID=new Set(c.validated);
+  const pal=document.getElementById('pal'); pal.innerHTML='';
+  CLASSES.forEach((nm,i)=>{const b=document.createElement('span');b.className='cls';b.style.background=COL[i%COL.length];
+    b.textContent=(i+1)+' '+nm;b.onclick=()=>setClass(i);b.id='cls'+i;pal.appendChild(b);});
+  setClass(0); renderList(); load(0);
+  window.addEventListener('resize',()=>{fit();draw();});
+}
+function setClass(i){curClass=i;CLASSES.forEach((_,k)=>document.getElementById('cls'+k).classList.toggle('act',k===i));
+  if(sel>=0){boxes[sel].cls=i;dirty=true;draw();}}
+function renderList(){
+  const L=document.getElementById('list');const only=document.getElementById('fOnly').checked;L.innerHTML='';
+  IMAGES.forEach((nm,i)=>{ if(only&&VALID.has(nm))return;
+    const d=document.createElement('div');d.className='it'+(i===idx?' sel':'');
+    d.innerHTML='<span>'+nm+'</span><span class="v">'+(VALID.has(nm)?'✔':'')+'</span>';
+    d.onclick=()=>load(i);L.appendChild(d);});
+  const p=VALID.size,t=IMAGES.length;
+  document.getElementById('prog').textContent=p+' / '+t+' tervalidasi';
+  document.querySelector('#bar>i').style.width=(t?100*p/t:0)+'%';
+}
+document.getElementById('fOnly').onchange=renderList;
+
+async function load(i){
+  if(dirty) await save(false);
+  idx=i; sel=-1; dirty=false;
+  const nm=IMAGES[i];
+  const txt=await (await fetch('/api/label?name='+encodeURIComponent(nm))).text();
+  boxes=parseLines(txt);
+  img=new Image();
+  img.onload=()=>{natW=img.naturalWidth;natH=img.naturalHeight;fit();draw();};
+  img.src='/img/'+encodeURIComponent(nm)+'?t='+Date.now();
+  renderList();
+}
+function parseLines(txt){
+  return txt.split('\n').filter(s=>s.trim()).map(line=>{const a=line.trim().split(/\s+/).map(Number);
+    const c=a[0],x=a[1],y=a[2],w=a[3],h=a[4];
+    return{cls:c,x1:x-w/2,y1:y-h/2,x2:x+w/2,y2:y+h/2};})
+    .filter(b=>[b.x1,b.y1,b.x2,b.y2].every(Number.isFinite));
+}
+function fit(){
+  const r=cv.parentElement.getBoundingClientRect();const vw=r.width,vh=r.height;
+  const dpr=window.devicePixelRatio||1;cv.width=vw*dpr;cv.height=vh*dpr;cv.style.width=vw+'px';cv.style.height=vh+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(!natW)return;const s=Math.min(vw/natW,vh/natH);
+  view={s:s,dw:natW*s,dh:natH*s,ox:(vw-natW*s)/2,oy:(vh-natH*s)/2};
+}
+const nx=x=>view.ox+x*view.dw, ny=y=>view.oy+y*view.dh;
+const inx=px=>(px-view.ox)/view.dw, iny=py=>(py-view.oy)/view.dh;
+function draw(){
+  const vw=cv.clientWidth,vh=cv.clientHeight;ctx.clearRect(0,0,vw,vh);
+  if(natW)ctx.drawImage(img,view.ox,view.oy,view.dw,view.dh);
+  boxes.forEach((b,i)=>{const c=COL[b.cls%COL.length];const X=nx(b.x1),Y=ny(b.y1),W=nx(b.x2)-X,Hh=ny(b.y2)-Y;
+    ctx.lineWidth=i===sel?3:2;ctx.strokeStyle=c;ctx.strokeRect(X,Y,W,Hh);
+    ctx.fillStyle=c;ctx.font='12px Segoe UI';const t=(CLASSES[b.cls]||b.cls);const tw=ctx.measureText(t).width+8;
+    ctx.fillRect(X,Y-16,tw,16);ctx.fillStyle='#06121f';ctx.fillText(t,X+4,Y-4);
+    if(i===sel){ctx.fillStyle='#fff';corners(b).forEach(p=>ctx.fillRect(p.x-4,p.y-4,8,8));}});
+}
+function corners(b){return[{x:nx(b.x1),y:ny(b.y1),k:'tl'},{x:nx(b.x2),y:ny(b.y1),k:'tr'},
+  {x:nx(b.x1),y:ny(b.y2),k:'bl'},{x:nx(b.x2),y:ny(b.y2),k:'br'}];}
+
+let drag=null;
+const clamp=v=>Math.max(0,Math.min(1,v));
+cv.addEventListener('mousedown',e=>{const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  if(sel>=0){for(const p of corners(boxes[sel]))if(Math.abs(mx-p.x)<7&&Math.abs(my-p.y)<7){drag={mode:'resize',k:p.k};return;}}
+  for(let i=boxes.length-1;i>=0;i--){const b=boxes[i];if(mx>nx(b.x1)&&mx<nx(b.x2)&&my>ny(b.y1)&&my<ny(b.y2)){
+    sel=i;setClass(b.cls);drag={mode:'move',ox:mx,oy:my,b0:Object.assign({},b)};draw();return;}}
+  const x=clamp(inx(mx)),y=clamp(iny(my));boxes.push({cls:curClass,x1:x,y1:y,x2:x,y2:y});sel=boxes.length-1;
+  drag={mode:'new'};dirty=true;draw();});
+cv.addEventListener('mousemove',e=>{if(!drag)return;const r=cv.getBoundingClientRect();const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const b=boxes[sel];const x=clamp(inx(mx)),y=clamp(iny(my));dirty=true;
+  if(drag.mode==='new'){b.x2=x;b.y2=y;}
+  else if(drag.mode==='resize'){if(drag.k.indexOf('l')>=0)b.x1=x;else b.x2=x;if(drag.k.indexOf('t')>=0)b.y1=y;else b.y2=y;}
+  else if(drag.mode==='move'){const dx=inx(mx)-inx(drag.ox),dy=iny(my)-iny(drag.oy);
+    b.x1=clamp(drag.b0.x1+dx);b.y1=clamp(drag.b0.y1+dy);b.x2=clamp(drag.b0.x2+dx);b.y2=clamp(drag.b0.y2+dy);}
+  draw();});
+window.addEventListener('mouseup',()=>{if(drag){const b=boxes[sel];if(b){if(b.x1>b.x2){const t=b.x1;b.x1=b.x2;b.x2=t;}if(b.y1>b.y2){const t=b.y1;b.y1=b.y2;b.y2=t;}
+  if((b.x2-b.x1)<0.005||(b.y2-b.y1)<0.005){boxes.splice(sel,1);sel=-1;}}drag=null;draw();}});
+
+function delSel(){if(sel>=0){boxes.splice(sel,1);sel=-1;dirty=true;draw();}}
+async function save(validated){
+  const nm=IMAGES[idx];
+  const lines=boxes.filter(b=>[b.x1,b.y1,b.x2,b.y2].every(Number.isFinite)).map(b=>{
+    const x=Math.min(b.x1,b.x2),y=Math.min(b.y1,b.y2),w=Math.abs(b.x2-b.x1),h=Math.abs(b.y2-b.y1);
+    return b.cls+' '+(x+w/2).toFixed(6)+' '+(y+h/2).toFixed(6)+' '+w.toFixed(6)+' '+h.toFixed(6);});
+  const already=VALID.has(nm)?1:0;const v=validated?1:already;
+  await fetch('/api/save?name='+encodeURIComponent(nm)+'&validated='+v,
+    {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lines:lines})});
+  if(v)VALID.add(nm);dirty=false;
+}
+async function saveValidate(){await save(true);toast('✔ tersimpan & divalidasi');renderList();
+  if(idx<IMAGES.length-1)load(idx+1);}
+async function next(){if(idx<IMAGES.length-1)load(idx+1);}
+async function prev(){if(idx>0)load(idx-1);}
+async function copyPrev(){
+  if(idx<=0){toast('tidak ada gambar sebelumnya');return;}
+  const txt=await (await fetch('/api/label?name='+encodeURIComponent(IMAGES[idx-1]))).text();
+  boxes=parseLines(txt);sel=-1;dirty=true;draw();toast('kotak gambar sebelumnya disalin — tinggal di-nudge');
+}
+async function propagate(){
+  const nm=IMAGES[idx],pre=nm.split('_')[0];
+  if(!confirm('Salin label gambar ini ke SEMUA '+pre+'_* (menimpa). Mereka perlu divalidasi ulang. Lanjut?'))return;
+  if(dirty) await save(false);
+  const r=await (await fetch('/api/propagate?from='+encodeURIComponent(nm),{method:'POST'})).json();
+  IMAGES.forEach(x=>{if(x.split('_')[0]===pre && x!==nm) VALID.delete(x);});
+  toast('disalin ke '+r.count+' gambar '+pre+'_*');renderList();
+}
+window.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;
+  if(e.key==='a'||e.key==='A')prev();
+  else if(e.key==='d'||e.key==='D')next();
+  else if(e.key==='s'||e.key==='S'){e.preventDefault();saveValidate();}
+  else if(e.key==='g'||e.key==='G'){e.preventDefault();propagate();}
+  else if(e.key==='c'||e.key==='C'){e.preventDefault();copyPrev();}
+  else if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();delSel();}
+  else if(e.key>='1'&&e.key<='9'){const k=+e.key-1;if(k<CLASSES.length)setClass(k);}});
+boot();
+</script>

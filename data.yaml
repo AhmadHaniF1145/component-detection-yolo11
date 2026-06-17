@@ -1,0 +1,6 @@
+# dibuat 04_split.py (seed=42)
+path: "C:/Users/Ahmad Hanif A.K/Documents/Raspberry-Pi-Computer-Vision/04-Vision Detection/dataset_yolo"
+train: train/images
+val: val/images
+nc: 8
+names: ['bldc_motor', 'stm32f4', 'mpu6500', 'ir_sensor', 'elco_capacitor', 'resistor', 'pin_header', 'xt30_female']

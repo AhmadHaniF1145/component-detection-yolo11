@@ -1,0 +1,4 @@
+# Install di environment conda 'yolo11-env' (lihat PANDUAN langkah 2-3)
+ultralytics>=8.3.0
+opencv-python
+# GPU PyTorch diinstall TERPISAH via index cu124 (lihat PANDUAN), JANGAN dari sini.

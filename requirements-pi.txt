@@ -1,0 +1,6 @@
+ultralytics
+opencv-python
+numpy
+matplotlib
+# picamera2 dari apt: sudo apt install -y python3-picamera2
+# NCNN dihasilkan via 'yolo export format=ncnn' (tidak perlu pip ncnn manual)
