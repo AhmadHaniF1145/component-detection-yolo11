@@ -39,7 +39,7 @@ def main():
     row={"timestamp":datetime.datetime.now().isoformat(timespec="seconds"),
          "name":a.name,"base_model":a.model,"device":dev_name,"os":platform.system(),
          "epochs":a.epochs,"imgsz":a.imgsz,"batch":a.batch,
-         "degrees":a.degrees,"flipud":a.flipud,
+         
          "train_time_s":round(train_s,1),"train_time_min":round(train_s/60,2),
          "sec_per_epoch":round(train_s/max(1,a.epochs),2),
          "mAP50":round(float(m.box.map50),4),"mAP50_95":round(float(m.box.map),4),

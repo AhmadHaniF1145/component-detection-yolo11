@@ -1,5 +1,5 @@
 timestamp,name,base_model,device,os,epochs,imgsz,batch,train_time_s,train_time_min,sec_per_epoch,mAP50,mAP50_95,precision,recall,weights
-2026-06-15T23:59:52,laptop_yolo11n,yolo11n.pt,NVIDIA GeForce RTX 3060 Laptop GPU,Windows,120,640,16,309.6,5.16,2.58,0.9672,0.7035,0.9225,0.9292,runs\laptop_yolo11n\weights\best.pt
-2026-06-16T00:08:29,laptop_yolo11s,yolo11s.pt,NVIDIA GeForce RTX 3060 Laptop GPU,Windows,120,640,16,471.0,7.85,3.92,0.9828,0.7159,0.944,0.96,runs\laptop_yolo11s\weights\best.pt
-2026-06-16T02:21:38,laptop_yolo11s_v2,yolo11s.pt,NVIDIA GeForce RTX 3060 Laptop GPU,Windows,120,640,16,180.0,0.5,1369.6,22.83,11.41,0.9512,0.6853,0.9191,0.8869,C:\Users\Ahmad Hanif A.K\Documents\Raspberry-Pi-Computer-Vision\04-Vision Detection\runs\detect\runs\laptop_yolo11s_v2\weights\best.pt
-2026-06-16T05:45:42,laptop_yolo11n_v2,yolo11n.pt,NVIDIA GeForce RTX 3060 Laptop GPU,Windows,120,640,16,180.0,0.5,904.6,15.08,7.54,0.9421,0.6602,0.9051,0.8987,C:\Users\Ahmad Hanif A.K\Documents\Raspberry-Pi-Computer-Vision\04-Vision Detection\runs\detect\runs\laptop_yolo11n_v2\weights\best.pt
+2026-06-15T23:59:52,laptop_yolo11n,yolo11n.pt,NVIDIA GeForce RTX 3060 Laptop GPU,Windows,120,640,16,309.6,5.16,2.58,0.9672,0.7035,0.9225,0.9292,runs/laptop_yolo11n/weights/best.pt
+2026-06-16T00:08:29,laptop_yolo11s,yolo11s.pt,NVIDIA GeForce RTX 3060 Laptop GPU,Windows,120,640,16,471.0,7.85,3.92,0.9828,0.7159,0.944,0.96,runs/laptop_yolo11s/weights/best.pt
+2026-06-16T05:45:42,laptop_yolo11n_v2,yolo11n.pt,NVIDIA GeForce RTX 3060 Laptop GPU,Windows,120,640,16,904.6,15.08,7.54,0.9421,0.6602,0.9051,0.8987,runs/laptop_yolo11n_v2/weights/best.pt
+2026-06-16T02:21:38,laptop_yolo11s_v2,yolo11s.pt,NVIDIA GeForce RTX 3060 Laptop GPU,Windows,120,640,16,1369.6,22.83,11.41,0.9512,0.6853,0.9191,0.8869,runs/laptop_yolo11s_v2/weights/best.pt

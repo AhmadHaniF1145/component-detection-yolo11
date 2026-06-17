@@ -42,8 +42,12 @@ Full-resolution clips: [`videos/`](videos/) · raw logs: [`logs/`](logs/) and [`
 ### Training (RTX 3060, 120 epochs, imgsz 640)
 | Model | mAP50 | mAP50-95 | Precision | Recall | Train time |
 |-------|------:|---------:|----------:|-------:|-----------:|
-| **YOLO11n** | 0.967 | 0.703 | 0.923 | 0.929 | 5.2 min |
-| **YOLO11s** | 0.983 | 0.716 | 0.944 | 0.960 | 7.9 min |
+| YOLO11n (baseline) | 0.967 | 0.703 | 0.923 | 0.929 | 5.2 min |
+| YOLO11s (baseline) | 0.983 | 0.716 | 0.944 | 0.960 | 7.9 min |
+| **YOLO11n v2** *(aug, deployed)* | 0.942 | 0.660 | 0.905 | 0.899 | 15.1 min |
+| **YOLO11s v2** *(aug, deployed)* | 0.951 | 0.685 | 0.919 | 0.887 | 22.8 min |
+
+> **v2** models are trained with rotation/flip augmentation — slower to train but more robust to component orientation. These are the models deployed to the laptop & Raspberry Pi.
 
 ![Training accuracy](assets/training_map.png)
 ![Training time](assets/training_time.png)
